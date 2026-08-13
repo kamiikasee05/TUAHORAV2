@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title id="pageTitle">TeToca · Manicuría en Chamical</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary-container": "#e8a0a0",
+        "on-secondary-fixed": "#1c1b1c",
+        "outline-variant": "#d7c2c1",
+        "on-tertiary": "#ffffff",
+        "inverse-surface": "#303030",
+        "on-error-container": "#93000a",
+        "secondary-container": "#e6e1e1",
+        "primary-fixed": "#ffdad9",
+        "tertiary-fixed": "#ffd9df",
+        "inverse-on-surface": "#f3f0f0",
+        "on-tertiary-fixed": "#3c0517",
+        "on-secondary-container": "#666464",
+        "tertiary-fixed-dim": "#ffb1c0",
+        "surface": "#fcf9f8",
+        "on-primary-fixed-variant": "#6c3738",
+        "on-secondary": "#ffffff",
+        "surface-container-low": "#f6f3f2",
+        "on-primary-container": "#6a3537",
+        "on-tertiary-container": "#722f3f",
+        "surface-container-lowest": "#ffffff",
+        "on-error": "#ffffff",
+        "surface-container-high": "#eae7e7",
+        "tertiary": "#914758",
+        "secondary-fixed": "#e6e1e1",
+        "surface-tint": "#884e4f",
+        "primary-fixed-dim": "#feb3b3",
+        "error-container": "#ffdad6",
+        "outline": "#847372",
+        "error": "#ba1a1a",
+        "on-secondary-fixed-variant": "#484647",
+        "surface-container-highest": "#e4e2e1",
+        "on-tertiary-fixed-variant": "#743041",
+        "surface-dim": "#dcd9d9",
+        "surface-bright": "#fcf9f8",
+        "secondary-fixed-dim": "#cac5c5",
+        "surface-variant": "#e4e2e1",
+        "background": "#fcf9f8",
+        "on-surface-variant": "#524343",
+        "on-primary": "#ffffff",
+        "surface-container": "#f0eded",
+        "on-background": "#1b1c1c",
+        "inverse-primary": "#feb3b3",
+        "primary": "#884e4f",
+        "on-surface": "#1b1c1c",
+        "secondary": "#605e5e",
+        "on-primary-fixed": "#370d10",
+        "tertiary-container": "#f399ab"
+      },
+      fontFamily: {
+        serif: ["Playfair Display", "serif"],
+        sans: ["Inter", "sans-serif"],
+      }
+    },
+  },
+}
+</script>
+<style>
+.material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+.glass-nav { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); background-color: rgba(252, 249, 248, 0.75); }
+.fade-in { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+.fade-in.show { opacity: 1; transform: translateY(0); }
+.service-card { transition: all 0.3s ease; }
+.service-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,.08); }
+.step-card { transition: all 0.3s ease; }
+.step-card:hover { transform: translateY(-4px); }
+.gallery-item { transition: all 0.5s ease; }
+.gallery-item:hover img { transform: scale(1.08); }
+.gallery-item img { transition: transform 0.5s ease; }
+.booking-step { display: none; }
+.booking-step.active { display: block; animation: fadeUp .35s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.bf-service-card { border: 2px solid #d7c2c1; border-radius: 0.75rem; padding: 16px 20px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s; display: flex; justify-content: space-between; align-items: center; }
+.bf-service-card:hover { border-color: #884e4f; }
+.bf-service-card.selected { border-color: #884e4f; background: rgba(136, 78, 79, 0.06); }
+.bf-service-card .bf-svc-name { font-weight: 600; font-size: 15px; color: #1b1c1c; }
+.bf-service-card .bf-svc-price { font-size: 20px; font-weight: 700; color: #884e4f; }
+.slot-btn { padding: 10px 16px; border-radius: 0.5rem; border: 1.5px solid #d7c2c1; background: #fff; font-size: 14px; cursor: pointer; transition: all 0.3s; text-align: center; color: #1b1c1c; font-family: inherit; }
+.slot-btn:hover { border-color: #884e4f; color: #884e4f; }
+.slot-btn.selected { border-color: #884e4f; background: #884e4f; color: #fff; }
+.slots-loading { text-align: center; padding: 24px; }
+.slots-loading .spinner { width: 32px; height: 32px; border: 3px solid #d7c2c1; border-top-color: #884e4f; border-radius: 50%; animation: spin .6s linear infinite; margin: 0 auto 10px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,.92); z-index: 9999; align-items: center; justify-content: center; cursor: pointer; flex-direction: column; animation: lbFade .2s ease; }
+@keyframes lbFade { from { opacity: 0; } to { opacity: 1; } }
+.lightbox.show { display: flex; }
+.lightbox img { max-width: 92vw; max-height: 82vh; object-fit: contain; border-radius: 0.75rem; }
+.lightbox .lb-close { position: absolute; top: 16px; right: 20px; color: #fff; font-size: 32px; cursor: pointer; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255,255,255,.08); transition: 0.3s; }
+.lightbox .lb-close:hover { background: rgba(255,255,255,.15); }
+.lightbox .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); color: #fff; font-size: 36px; cursor: pointer; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; user-select: none; border-radius: 50%; background: rgba(255,255,255,.06); transition: 0.3s; }
+.lightbox .lb-nav:hover { background: rgba(255,255,255,.14); }
+.lightbox .lb-prev { left: 12px; }
+.lightbox .lb-next { right: 12px; }
+body { min-height: 100dvh; }
+</style>
+<style id="dynamic-colors">
+:root { --pri: #884e4f; --acc: #914758; --txt: #1b1c1c; --bg: #fcf9f8; }
+</style>
+</head>
+<body class="bg-background text-on-surface font-sans antialiased">
+
+<!-- Navigation -->
+<nav class="fixed top-0 w-full z-50 glass-nav border-b border-white/20 transition-all duration-300">
+  <div class="max-w-6xl mx-auto px-4 md:px-8 h-16 md:h-20 flex items-center justify-between">
+    <a href="#" class="flex items-center gap-2 no-underline">
+      <span class="material-symbols-outlined text-[#884e4f] text-2xl md:text-3xl">spa</span>
+      <span class="font-serif text-xl md:text-2xl text-[#884e4f] tracking-tight font-semibold" id="brandName">TeToca</span>
+    </a>
+    <div class="hidden md:flex items-center gap-1">
+      <a class="px-4 py-2 text-sm font-medium text-[#524343] hover:text-[#884e4f] rounded-full hover:bg-[#884e4f]/10 transition-colors" href="#servicios">Servicios</a>
+      <a class="px-4 py-2 text-sm font-medium text-[#524343] hover:text-[#884e4f] rounded-full hover:bg-[#884e4f]/10 transition-colors" href="#como-funciona">Cómo funciona</a>
+      <a class="px-4 py-2 text-sm font-medium text-[#524343] hover:text-[#884e4f] rounded-full hover:bg-[#884e4f]/10 transition-colors" href="#galeria">Galería</a>
+      <a class="px-4 py-2 text-sm font-medium text-[#524343] hover:text-[#884e4f] rounded-full hover:bg-[#884e4f]/10 transition-colors" href="#ubicacion">Ubicación</a>
+      <a href="#reserva" class="ml-2 bg-[#884e4f] text-white px-6 py-2.5 rounded-full text-sm font-medium hover:scale-105 transition-transform duration-200 shadow-lg shadow-[#884e4f]/20">RESERVAR</a>
+    </div>
+    <button class="md:hidden text-[#884e4f]" id="hamburger" aria-label="Menú">
+      <span class="material-symbols-outlined text-3xl">menu</span>
+    </button>
+  </div>
+  <div class="hidden md:hidden bg-[#fcf9f8] border-b border-[#d7c2c1] px-4 py-2 flex flex-col gap-1 shadow-lg" id="mobileMenu">
+    <a class="px-4 py-3 text-[#524343] font-medium border-b border-[#e4e2e1]" href="#servicios">Servicios</a>
+    <a class="px-4 py-3 text-[#524343] font-medium border-b border-[#e4e2e1]" href="#como-funciona">Cómo funciona</a>
+    <a class="px-4 py-3 text-[#524343] font-medium border-b border-[#e4e2e1]" href="#galeria">Galería</a>
+    <a class="px-4 py-3 text-[#524343] font-medium border-b border-[#e4e2e1]" href="#ubicacion">Ubicación</a>
+    <a href="#reserva" class="mt-2 bg-[#884e4f] text-white px-4 py-3 rounded-lg text-center font-medium">RESERVAR</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="relative min-h-[600px] md:min-h-[700px] flex items-center pt-16 md:pt-20 overflow-hidden" style="background: radial-gradient(ellipse at 20% 50%, rgba(136,78,79,.08) 0%, transparent 60%), radial-gradient(ellipse at 80% 30%, rgba(145,71,88,.06) 0%, transparent 50%), linear-gradient(180deg, #f6f3f2 0%, #fcf9f8 100%);">
+  <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#fcf9f8] pointer-events-none"></div>
+  <div class="relative z-10 max-w-6xl mx-auto px-4 md:px-8 w-full text-center py-12">
+    <div class="max-w-2xl mx-auto fade-in show">
+      <div class="inline-flex items-center gap-2 bg-white/80 backdrop-blur-md px-4 py-2 rounded-full border border-[#884e4f]/20 mb-6">
+        <span class="material-symbols-outlined text-[#884e4f] text-sm">location_on</span>
+        <span class="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#524343]">En el centro de Chamical</span>
+      </div>
+      <img class="max-h-24 mx-auto mb-6 rounded-lg hidden" id="heroLogo" src="" alt="">
+      <h1 class="font-serif text-4xl md:text-5xl lg:text-6xl text-[#1b1c1c] leading-tight font-bold mb-4" id="heroTagline">Realzá tu <span class="text-[#884e4f]">estilo</span> en cada detalle</h1>
+      <p class="text-lg text-[#524343] mb-2 font-medium" id="heroProfesional"></p>
+      <p class="text-base md:text-lg text-[#524343] max-w-lg mx-auto mb-8 leading-relaxed">Manicuría profesional con productos de primera calidad. Turnos online, sin vueltas.</p>
+      <div class="flex flex-wrap gap-3 justify-center">
+        <a href="#reserva" class="inline-flex items-center gap-2 bg-[#884e4f] text-white px-8 py-4 rounded-full font-medium hover:scale-105 transition-transform shadow-lg shadow-[#884e4f]/20">✦ Reservar turno</a>
+        <a href="#servicios" class="inline-flex items-center gap-2 border-2 border-[#884e4f] text-[#884e4f] px-8 py-4 rounded-full font-medium hover:bg-[#884e4f]/5 transition-colors">Ver servicios</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Services -->
+<section id="servicios" class="py-16 md:py-24 bg-[#fcf9f8]">
+  <div class="max-w-6xl mx-auto px-4 md:px-8">
+    <div class="text-center mb-12 fade-in">
+      <span class="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#914758] mb-3 block">Servicios</span>
+      <h2 class="font-serif text-3xl md:text-4xl text-[#1b1c1c] mb-3 font-semibold">Todo lo que necesitás para lucir manos perfectas</h2>
+      <p class="text-[#524343]">Elegí el servicio que más se adapte a vos</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="servicesGrid">
+      <p class="text-[#524343] col-span-full text-center">Cargando servicios...</p>
+    </div>
+  </div>
+</section>
+
+<!-- How it Works -->
+<section id="como-funciona" class="py-16 md:py-24 bg-[#f6f3f2]">
+  <div class="max-w-6xl mx-auto px-4 md:px-8">
+    <div class="text-center mb-12 fade-in">
+      <span class="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#914758] mb-3 block">Cómo funciona</span>
+      <h2 class="font-serif text-3xl md:text-4xl text-[#1b1c1c] mb-3 font-semibold">Reservá en 3 pasos simples</h2>
+      <p class="text-[#524343]">Olvidate de las llamadas, todo online</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+      <div class="step-card bg-[#fcf9f8] rounded-xl p-8 text-center border border-[#d7c2c1]/40 fade-in">
+        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-[#884e4f] to-[#914758] text-white flex items-center justify-center mx-auto mb-5 text-2xl font-bold font-serif shadow-lg">1</div>
+        <h4 class="text-lg font-semibold text-[#1b1c1c] mb-2">Elegí tu servicio</h4>
+        <p class="text-sm text-[#524343] leading-relaxed">Mirá todas nuestras opciones y elegí la que más te guste.</p>
+      </div>
+      <div class="step-card bg-[#fcf9f8] rounded-xl p-8 text-center border border-[#d7c2c1]/40 fade-in">
+        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-[#884e4f] to-[#914758] text-white flex items-center justify-center mx-auto mb-5 text-2xl font-bold font-serif shadow-lg">2</div>
+        <h4 class="text-lg font-semibold text-[#1b1c1c] mb-2">Elegí fecha y horario</h4>
+        <p class="text-sm text-[#524343] leading-relaxed">Seleccioná el día y la hora que mejor te quede.</p>
+      </div>
+      <div class="step-card bg-[#fcf9f8] rounded-xl p-8 text-center border border-[#d7c2c1]/40 fade-in">
+        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-[#884e4f] to-[#914758] text-white flex items-center justify-center mx-auto mb-5 text-2xl font-bold font-serif shadow-lg">3</div>
+        <h4 class="text-lg font-semibold text-[#1b1c1c] mb-2">Confirmá y listo</h4>
+        <p class="text-sm text-[#524343] leading-relaxed">Te llega la confirmación por WhatsApp al instante.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Gallery -->
+<section id="galeria" class="py-16 md:py-24 bg-[#fcf9f8]">
+  <div class="max-w-6xl mx-auto px-4 md:px-8">
+    <div class="flex flex-col md:flex-row justify-between items-end mb-10 fade-in">
+      <div>
+        <span class="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#914758] mb-3 block">Galería</span>
+        <h2 class="font-serif text-3xl md:text-4xl text-[#1b1c1c] font-semibold">Nuestros trabajos</h2>
+        <p class="text-[#524343] mt-1">Mirá algunos de los diseños que hacemos</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="galleryGrid">
+      <div class="gallery-item gallery-empty-placeholder col-span-2 md:col-span-4 flex items-center justify-center border-2 border-dashed border-[#884e4f]/25 rounded-xl py-16 text-[#524343] text-sm">
+        <span class="text-center">📸 Próximamente</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Sobre la profesional -->
+<section id="nosotras" class="py-16 md:py-24 bg-[#f6f3f2]">
+  <div class="max-w-6xl mx-auto px-4 md:px-8">
+    <div class="text-center mb-12 fade-in">
+      <span class="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#914758] mb-3 block">El equipo</span>
+      <h2 class="font-serif text-3xl md:text-4xl text-[#1b1c1c] mb-3 font-semibold">Conocé a tu profesional</h2>
+      <p class="text-[#524343]" id="profSectionSub">Pasión por lo que hacemos, dedicación en cada detalle</p>
+    </div>
+    <div id="professionalsContainer"></div>
+  </div>
+</section>
+
+<!-- Booking -->
+<section id="reserva" class="py-16 md:py-24 bg-[#fcf9f8]">
+  <div class="max-w-6xl mx-auto px-4 md:px-8">
+    <div class="text-center mb-10 fade-in">
+      <span class="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#914758] mb-3 block">Reserva</span>
+      <h2 class="font-serif text-3xl md:text-4xl text-[#1b1c1c] mb-3 font-semibold">Reservá tu turno</h2>
+      <p class="text-[#524343]">Elegí servicio, fecha y horario en simples pasos</p>
+    </div>
+    <p class="text-center text-sm text-[#914758] mb-6 bg-[#884e4f]/10 px-5 py-3 rounded-full max-w-lg mx-auto border border-[#884e4f]/20">📅 Las reservas requieren <strong>24 horas de anticipación</strong></p>
+    <div class="max-w-xl mx-auto bg-white rounded-2xl shadow-lg border border-[#d7c2c1]/30 overflow-hidden">
+      <div class="p-6 md:p-8">
+        <div class="flex items-center justify-center gap-2 mb-8">
+          <span class="step-dot w-9 h-9 rounded-full bg-[#884e4f] text-white flex items-center justify-center text-sm font-bold shadow-md" id="stepDot1">1</span>
+          <span class="step-line w-8 h-0.5 bg-[#e4e2e1] rounded" id="stepLine1"></span>
+          <span class="step-dot w-9 h-9 rounded-full bg-[#e4e2e1] text-[#524343] flex items-center justify-center text-sm font-bold" id="stepDot2">2</span>
+          <span class="step-line w-8 h-0.5 bg-[#e4e2e1] rounded" id="stepLine2"></span>
+          <span class="step-dot w-9 h-9 rounded-full bg-[#e4e2e1] text-[#524343] flex items-center justify-center text-sm font-bold" id="stepDot3">3</span>
+        </div>
+
+        <!-- Step 1: Service -->
+        <div class="booking-step active" id="step1">
+          <h3 class="text-center text-lg font-semibold text-[#1b1c1c] mb-6">Elegí tu servicio</h3>
+          <div id="serviceList"><p class="text-center text-sm text-[#524343]">Cargando servicios...</p></div>
+          <div class="flex justify-end mt-6">
+            <button class="bg-[#884e4f] text-white px-8 py-3 rounded-full font-medium hover:brightness-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed" id="btnStep1Next" disabled onclick="goToStep2()">Siguiente →</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Date & Time -->
+        <div class="booking-step" id="step2">
+          <h3 class="text-center text-lg font-semibold text-[#1b1c1c] mb-6">Elegí fecha y horario</h3>
+          <div class="mb-4">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-[#524343] mb-2">Fecha</label>
+            <input type="date" class="w-full px-4 py-3 border-2 border-[#d7c2c1] rounded-xl text-sm outline-none focus:border-[#884e4f] focus:ring-2 focus:ring-[#884e4f]/20 transition-all font-sans" id="bfDate" onchange="cargarHorarios()">
+          </div>
+          <div id="slotsContainer" class="text-center text-sm text-[#524343] py-5">Seleccioná una fecha para ver los horarios disponibles</div>
+          <div class="text-center text-sm text-red-600 hidden" id="step2Error"></div>
+          <div class="flex gap-3 justify-end mt-4">
+            <button class="px-6 py-3 rounded-full border-2 border-[#d7c2c1] text-[#524343] font-medium hover:border-[#884e4f] hover:text-[#884e4f] transition-all" onclick="goToStep1()">← Volver</button>
+            <button class="bg-[#884e4f] text-white px-8 py-3 rounded-full font-medium hover:brightness-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed" id="btnStep2Next" disabled onclick="goToStep3()">Siguiente →</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Customer Data -->
+        <div class="booking-step" id="step3">
+          <h3 class="text-center text-lg font-semibold text-[#1b1c1c] mb-6">Tus datos</h3>
+          <div class="bg-[#884e4f]/5 rounded-xl p-4 mb-6 border border-[#884e4f]/15 text-sm" id="step3Summary"></div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <div><label class="block text-xs font-semibold uppercase tracking-wider text-[#524343] mb-2">Nombre *</label><input type="text" class="w-full px-4 py-3 border-2 border-[#d7c2c1] rounded-xl text-sm outline-none focus:border-[#884e4f] focus:ring-2 focus:ring-[#884e4f]/20 transition-all font-sans" id="bfFirstName" placeholder="Tu nombre" required></div>
+            <div><label class="block text-xs font-semibold uppercase tracking-wider text-[#524343] mb-2">Apellido</label><input type="text" class="w-full px-4 py-3 border-2 border-[#d7c2c1] rounded-xl text-sm outline-none focus:border-[#884e4f] focus:ring-2 focus:ring-[#884e4f]/20 transition-all font-sans" id="bfLastName" placeholder="Tu apellido"></div>
+          </div>
+          <div class="mb-4">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-[#524343] mb-2">WhatsApp *</label>
+            <input type="tel" class="w-full px-4 py-3 border-2 border-[#d7c2c1] rounded-xl text-sm outline-none focus:border-[#884e4f] focus:ring-2 focus:ring-[#884e4f]/20 transition-all font-sans" id="bfPhone" placeholder="Sin 0, sin 15. Ej: 3826403110" required oninput="normalizarTelefono()">
+            <div class="text-xs text-[#914758] mt-1.5 min-h-5" id="phonePreview"></div>
+          </div>
+          <div class="text-center text-sm text-red-600 hidden" id="step3Error"></div>
+          <div class="flex gap-3 justify-end mt-4">
+            <button class="px-6 py-3 rounded-full border-2 border-[#d7c2c1] text-[#524343] font-medium hover:border-[#884e4f] hover:text-[#884e4f] transition-all" onclick="goToStep2()">← Volver</button>
+            <button class="bg-[#884e4f] text-white px-8 py-3 rounded-full font-medium hover:brightness-90 transition-all" id="btnConfirmar" onclick="confirmarTurno()">Confirmar turno</button>
+          </div>
+        </div>
+
+        <!-- Step 4: Confirmation -->
+        <div class="booking-step" id="step4">
+          <div class="text-center py-8">
+            <span class="text-5xl block mb-4">✅</span>
+            <h3 class="font-serif text-2xl text-[#1b1c1c] mb-2">¡Turno reservado!</h3>
+            <p class="text-[#524343] mb-4">Te enviamos la confirmación por WhatsApp.</p>
+            <div class="bg-[#884e4f]/5 rounded-xl p-4 mb-6 border border-[#884e4f]/15 text-left text-sm leading-relaxed" id="confResumen"></div>
+            <a href="#reserva" class="inline-flex items-center gap-2 bg-[#884e4f] text-white px-8 py-3 rounded-full font-medium hover:brightness-90 transition-all" onclick="resetBooking();return false;">Reservar otro turno</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Location -->
+<section id="ubicacion" class="py-16 md:py-24 bg-[#f6f3f2]">
+  <div class="max-w-6xl mx-auto px-4 md:px-8">
+    <div class="text-center mb-12 fade-in">
+      <span class="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#914758] mb-3 block">Ubicación</span>
+      <h2 class="font-serif text-3xl md:text-4xl text-[#1b1c1c] mb-3 font-semibold">Encontrá nuestro salón</h2>
+      <p class="text-[#524343]">Te esperamos en el centro de Chamical</p>
+    </div>
+    <div class="max-w-md mx-auto fade-in">
+      <div class="bg-white rounded-2xl p-8 shadow-lg border border-[#d7c2c1]/30 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[#884e4f] to-[#914758] rounded-r"></div>
+        <div class="w-12 h-12 rounded-full bg-[#884e4f]/10 flex items-center justify-center text-xl mb-4">📍</div>
+        <h3 class="text-xl font-semibold text-[#1b1c1c] mb-1" id="locationName">TeToca</h3>
+        <p class="text-sm text-[#524343] mb-4">Salón de manicuría</p>
+        <div class="flex items-center gap-2 text-sm text-[#524343] mb-3"><span>📍</span><span id="locationAddress">Colon 350, Chamical, La Rioja</span></div>
+        <a id="mapsLink" href="#" target="_blank" class="inline-flex items-center gap-2 text-[#884e4f] font-semibold text-sm mt-4 px-6 py-3 rounded-full bg-[#884e4f]/10 hover:bg-[#884e4f]/20 transition-all">🗺️ Abrir en Google Maps</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="bg-[#1b1c1c] text-white/60 py-16 px-4">
+  <div class="max-w-6xl mx-auto">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
+      <div>
+        <span class="font-serif text-xl text-[#e8a0a0] block mb-3" id="footerBrand">TeToca</span>
+        <p class="text-sm leading-relaxed max-w-xs">Manicuría profesional en Chamical. Turnos online rápidos y sencillos.</p>
+      </div>
+      <div>
+        <h4 class="text-white text-xs font-semibold uppercase tracking-wider mb-4">Navegación</h4>
+        <div class="flex flex-col gap-2">
+          <a href="#servicios" class="text-sm text-white/55 hover:text-[#e8a0a0] transition-colors">Servicios</a>
+          <a href="#como-funciona" class="text-sm text-white/55 hover:text-[#e8a0a0] transition-colors">Cómo funciona</a>
+          <a href="#galeria" class="text-sm text-white/55 hover:text-[#e8a0a0] transition-colors">Galería</a>
+          <a href="#nosotras" class="text-sm text-white/55 hover:text-[#e8a0a0] transition-colors">La profesional</a>
+          <a href="#reserva" class="text-sm text-white/55 hover:text-[#e8a0a0] transition-colors">Reservar turno</a>
+        </div>
+      </div>
+      <div>
+        <h4 class="text-white text-xs font-semibold uppercase tracking-wider mb-4">Contacto</h4>
+        <div class="flex flex-col gap-2">
+          <a href="#" class="text-sm text-white/55 hover:text-[#e8a0a0] transition-colors" id="footerWhatsApp">💬 WhatsApp</a>
+          <span class="text-sm text-white/55" id="footerAddress">Colon 350, Chamical</span>
+        </div>
+      </div>
+    </div>
+    <div class="pt-6 border-t border-white/10 text-center text-xs text-white/35" id="footerCopy"></div>
+  </div>
+</footer>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox">
+  <span class="lb-close" id="lbClose">&times;</span>
+  <span class="lb-nav lb-prev" id="lbPrev">‹</span>
+  <img src="" alt="" id="lbImg">
+  <span class="lb-nav lb-next" id="lbNext">›</span>
+</div>
+
+<!-- FAB Mobile -->
+<a href="#reserva" class="md:hidden fixed bottom-5 right-5 bg-[#884e4f] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-xl z-40 active:scale-90 transition-transform shadow-[#884e4f]/30">
+  <span class="material-symbols-outlined">calendar_month</span>
+</a>
+
+<script>
+(function() {
+  var API = '/api/v1';
+  var tomorrow = new Date(Date.now() + 86400000);
+  document.getElementById('bfDate').min = tomorrow.toISOString().slice(0,10);
+
+  var config = { name: 'TeToca', tagline: 'Realz\u00E1 tu estilo en cada detalle', address: 'Colon 350, Chamical', whatsapp: '5493826403110', instagram: '', colors: { primary: '#884e4f', accent: '#914758', text: '#1b1c1c', background: '#fcf9f8' }, gallery: [], providerId: 5 };
+
+  function applyConfig(cfg) {
+    config = cfg; config.providerId = cfg.providerId || 5; var c = cfg.colors || {};
+    var root = document.documentElement;
+    root.style.setProperty('--pri', c.primary || '#884e4f');
+    root.style.setProperty('--acc', c.accent || '#914758');
+    root.style.setProperty('--txt', c.text || '#1b1c1c');
+    root.style.setProperty('--bg', c.background || '#fcf9f8');
+    var brand = cfg.brand || {};
+    var name = brand.name || 'TeToca';
+    setText('brandName', name);
+    if (brand.tagline) setText('heroTagline', brand.tagline);
+    if (brand.profesional) setText('heroProfesional', 'con ' + brand.profesional);
+    setText('locationName', name);
+    if (cfg.professionals && cfg.professionals.length > 0) {
+      renderProfesionales(cfg.professionals);
+      document.getElementById('profSectionSub').textContent = cfg.professionals.length === 1 ? 'Pasi\u00F3n por lo que hago, dedicaci\u00F3n en cada detalle' : 'Pasi\u00F3n por lo que hacemos, dedicaci\u00F3n en cada detalle';
+    }
+    setText('locationAddress', brand.address || 'Colon 350, Chamical');
+    setText('footerBrand', name);
+    var addrEl = document.getElementById('footerAddress');
+    if (addrEl) addrEl.textContent = brand.address || 'Colon 350, Chamical';
+    setText('footerCopy', '\u00A9 ' + new Date().getFullYear() + ' ' + name + ' \u00B7 Turnos online');
+    var mapsLink = document.getElementById('mapsLink');
+    if (mapsLink && brand.address) mapsLink.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(brand.address);
+    var wa = brand.whatsapp || '5493826403110';
+    var waUrl = 'https://wa.me/' + wa.replace(/[^0-9]/g, '');
+    var waLinks = document.querySelectorAll('[id$="WhatsApp"]');
+    waLinks.forEach(function(el) { if (el.tagName === 'A') el.href = waUrl; });
+    if (cfg.gallery && cfg.gallery.length > 0) renderGallery(cfg.gallery);
+    var logoUrl = cfg.logo || brand.logo || '';
+    var heroLogo = document.getElementById('heroLogo');
+    if (logoUrl && heroLogo) { heroLogo.src = logoUrl; heroLogo.classList.remove('hidden'); }
+  }
+
+  function setText(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; }
+
+  fetch('/config.json').then(function(r) { if (r.ok) return r.json(); }).then(function(cfg) { if (cfg) applyConfig(cfg); }).catch(function() {});
+
+  var servicesData = [];
+  fetch(API + '/services').then(function(r) { return r.json(); }).then(function(data) {
+    servicesData = data; renderServices(data); renderServiceCards(data);
+  }).catch(function() {
+    document.getElementById('servicesGrid').innerHTML = '<p class="text-[#524343] col-span-full text-center">Error al cargar servicios</p>';
+    document.getElementById('serviceList').innerHTML = '<p class="text-center text-sm text-[#524343]">Error al cargar servicios</p>';
+  });
+
+  var icons = ['\uD83D\uDC85','\u2728','\uD83D\uDC36','\uD83D\uDC8E','\uD83C\uDFA8','\uD83D\uDCAB'];
+
+  function renderServices(data) {
+    var grid = document.getElementById('servicesGrid');
+    if (!data || data.length === 0) { grid.innerHTML = '<p class="text-[#524343] col-span-full text-center">No hay servicios disponibles</p>'; return; }
+    var html = '';
+    data.forEach(function(s, i) {
+      if (s.id == 1 && s.name == 'Service') return;
+      html += '<div class="service-card bg-white rounded-xl overflow-hidden border border-[#d7c2c1]/30 fade-in flex flex-col">' +
+        '<div class="p-6 flex flex-col flex-1">' +
+        '<div class="w-12 h-12 rounded-full bg-[#884e4f]/10 flex items-center justify-center text-xl mb-4">' + icons[i % icons.length] + '</div>' +
+        '<h3 class="text-lg font-semibold text-[#1b1c1c] mb-2">' + esc(s.name) + '</h3>' +
+        '<p class="text-sm text-[#524343] leading-relaxed flex-1 mb-4">' + esc(s.description || 'Servicio profesional de manicur\u00EDa') + '</p>' +
+        '<div class="flex items-center justify-between pt-4 border-t border-[#d7c2c1]/30">' +
+        '<span class="text-2xl font-bold text-[#884e4f]">$' + Number(s.price).toLocaleString('es-AR') + '</span>' +
+        '<span class="text-xs text-[#524343] flex items-center gap-1">\uD83D\uDD50 ' + s.duration + ' min</span>' +
+        '</div>' +
+        '<a href="#reserva" class="mt-4 w-full py-3 rounded-xl bg-[#884e4f]/10 text-[#884e4f] font-semibold text-sm text-center hover:bg-[#884e4f] hover:text-white transition-all block no-underline" onclick="irAReserva(' + s.id + ')">Reservar turno</a>' +
+        '</div></div>';
+    });
+    grid.innerHTML = html;
+    observeFadeIn();
+  }
+
+  var selectedService = null, selectedDate = null, selectedSlot = null, selectedSlotEnd = null;
+
+  function renderServiceCards(data) {
+    var list = document.getElementById('serviceList');
+    if (!data || data.length === 0) { list.innerHTML = '<p class="text-center text-sm text-[#524343]">No hay servicios disponibles</p>'; return; }
+    var html = '';
+    data.forEach(function(s) {
+      if (s.id == 1 && s.name == 'Service') return;
+      html += '<div class="bf-service-card" data-id="' + s.id + '" data-name="' + esc(s.name) + '" data-price="' + s.price + '" data-duration="' + s.duration + '">' +
+        '<div><div class="bf-svc-name">' + esc(s.name) + '</div><div class="text-xs text-[#524343] mt-1">' + s.duration + ' min</div></div>' +
+        '<div class="bf-svc-price">$' + Number(s.price).toLocaleString('es-AR') + '</div>' +
+        '</div>';
+    });
+    list.innerHTML = html;
+    document.querySelectorAll('.bf-service-card').forEach(function(card) {
+      card.addEventListener('click', function() {
+        document.querySelectorAll('.bf-service-card').forEach(function(c) { c.classList.remove('selected'); });
+        card.classList.add('selected');
+        selectedService = { id: parseInt(card.dataset.id), name: card.dataset.name, price: parseFloat(card.dataset.price), duration: parseInt(card.dataset.duration) };
+        document.getElementById('btnStep1Next').disabled = false;
+      });
+    });
+  }
+
+  var currentStep = 1;
+  function showStep(n) {
+    currentStep = n;
+    document.querySelectorAll('.booking-step').forEach(function(s) { s.classList.remove('active'); });
+    document.getElementById('step' + n).classList.add('active');
+    var dots = ['stepDot1', 'stepDot2', 'stepDot3'];
+    var lines = ['stepLine1', 'stepLine2'];
+    dots.forEach(function(id, i) {
+      var dot = document.getElementById(id);
+      dot.classList.remove('bg-[#e4e2e1]', 'text-[#524343]', 'shadow-md');
+      dot.classList.add('bg-[#884e4f]', 'text-white');
+      if (i + 1 < n) { dot.classList.add('bg-[#884e4f]', 'text-white'); }
+      if (i + 1 > n) { dot.classList.remove('bg-[#884e4f]', 'text-white'); dot.classList.add('bg-[#e4e2e1]', 'text-[#524343]'); }
+    });
+    lines.forEach(function(id, i) {
+      var line = document.getElementById(id);
+      line.classList.remove('bg-[#884e4f]');
+      line.classList.add('bg-[#e4e2e1]');
+      if (i + 1 < n) { line.classList.remove('bg-[#e4e2e1]'); line.classList.add('bg-[#884e4f]'); }
+    });
+    if (n === 3) actualizarResumen();
+  }
+
+  window.goToStep1 = function() { showStep(1); };
+  window.goToStep2 = function() { if (!selectedService) return; showStep(2); if (selectedDate) cargarHorarios(); };
+  window.goToStep3 = function() { if (!selectedDate || !selectedSlot) return; showStep(3); };
+  window.irAReserva = function(serviceId) {
+    var card = document.querySelector('.bf-service-card[data-id="' + serviceId + '"]');
+    if (card) card.click();
+    showStep(2);
+    document.getElementById('reserva').scrollIntoView({behavior:'smooth'});
+  };
+
+  window.cargarHorarios = function() {
+    var date = document.getElementById('bfDate').value;
+    selectedDate = date;
+    var container = document.getElementById('slotsContainer');
+    var errorDiv = document.getElementById('step2Error');
+    var btnNext = document.getElementById('btnStep2Next');
+    errorDiv.classList.add('hidden');
+    btnNext.disabled = true;
+    selectedSlot = null; selectedSlotEnd = null;
+    if (!date) { container.innerHTML = '<div class="text-sm text-[#524343] py-5">Seleccion\u00E1 una fecha para ver los horarios disponibles</div>'; return; }
+    if (!selectedService) { container.innerHTML = '<div class="text-sm text-[#524343] py-5">Primero eleg\u00ED un servicio</div>'; return; }
+    container.innerHTML = '<div class="slots-loading"><div class="spinner"></div><div class="text-sm text-[#524343]">Buscando horarios...</div></div>';
+    fetch(API + '/availabilities?providerId=' + (config.providerId || 5) + '&serviceId=' + selectedService.id + '&date=' + date)
+    .then(function(r) { if (!r.ok) throw new Error('Error'); return r.json(); })
+    .then(function(data) {
+      if (data && data.dayOff) { container.innerHTML = '<div class="text-sm text-[#524343] py-5">' + (data.reason ? 'Este d\u00EDa no est\u00E1 disponible: ' + data.reason : 'No hay horarios disponibles para esta fecha') + '</div>'; return; }
+      if (!Array.isArray(data) || data.length === 0) { container.innerHTML = '<div class="text-sm text-[#524343] py-5">No hay horarios disponibles para esta fecha</div>'; return; }
+      var html = '<div class="grid grid-cols-3 md:grid-cols-4 gap-2">';
+      data.forEach(function(s) {
+        var time = typeof s === 'string' ? s : (s.start || s.time || '');
+        html += '<button type="button" class="slot-btn" data-time="' + time + '" onclick="seleccionarSlot(this,\'' + time + '\')">' + time.substring(0,5) + '</button>';
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    })
+    .catch(function() { container.innerHTML = '<div class="text-sm text-red-600 py-5">Error al cargar horarios</div>'; });
+  };
+
+  window.seleccionarSlot = function(el, time) {
+    document.querySelectorAll('.slot-btn').forEach(function(b) { b.classList.remove('selected'); });
+    el.classList.add('selected');
+    selectedSlot = time;
+    selectedSlotEnd = calcularFin(time, selectedService.duration);
+    document.getElementById('btnStep2Next').disabled = false;
+  };
+
+  function calcularFin(start, duration) {
+    var parts = start.split(':');
+    var d = new Date();
+    d.setHours(parseInt(parts[0]), parseInt(parts[1]), 0);
+    d.setMinutes(d.getMinutes() + duration);
+    return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+
+  function actualizarResumen() {
+    if (!selectedService || !selectedDate || !selectedSlot) return;
+    var dateParts = selectedDate.split('-');
+    var fechaFormateada = dateParts[2] + '/' + dateParts[1] + '/' + dateParts[0];
+    var html = '';
+    html += '<div class="flex justify-between mb-2"><span class="text-[#524343] text-xs">Servicio:</span><span class="font-semibold text-[#1b1c1c] text-xs">' + selectedService.name + '</span></div>';
+    html += '<div class="flex justify-between mb-2"><span class="text-[#524343] text-xs">Fecha:</span><span class="font-semibold text-[#1b1c1c] text-xs">' + fechaFormateada + '</span></div>';
+    html += '<div class="flex justify-between mb-2"><span class="text-[#524343] text-xs">Horario:</span><span class="font-semibold text-[#1b1c1c] text-xs">' + selectedSlot.substring(0,5) + ' hs</span></div>';
+    html += '<div class="flex justify-between mb-2"><span class="text-[#524343] text-xs">Duraci\u00F3n:</span><span class="font-semibold text-[#1b1c1c] text-xs">' + selectedService.duration + ' min</span></div>';
+    html += '<div class="flex justify-between"><span class="text-[#524343] text-xs">Precio:</span><span class="font-semibold text-[#884e4f]">$' + selectedService.price.toLocaleString('es-AR') + '</span></div>';
+    document.getElementById('step3Summary').innerHTML = html;
+  }
+
+  window.normalizarTelefono = function() {
+    var input = document.getElementById('bfPhone');
+    var preview = document.getElementById('phonePreview');
+    var raw = input.value.replace(/\D/g, '');
+    if (!raw) { preview.textContent = ''; return; }
+    var clean = raw.replace(/^0+/, '').replace(/^15/, '');
+    if (clean.length <= 10) clean = '549' + clean;
+    preview.textContent = 'Se enviar\u00E1 como: ' + clean;
+  };
+
+  function normalizarTelefonoValor() {
+    var raw = document.getElementById('bfPhone').value.replace(/\D/g, '');
+    if (!raw) return '';
+    var clean = raw.replace(/^0+/, '').replace(/^15/, '');
+    if (clean.length <= 10) clean = '549' + clean;
+    return clean;
+  }
+
+  window.confirmarTurno = function() {
+    var firstName = document.getElementById('bfFirstName').value.trim();
+    var lastName = document.getElementById('bfLastName').value.trim();
+    var phone = normalizarTelefonoValor();
+    var errorDiv = document.getElementById('step3Error');
+    var btn = document.getElementById('btnConfirmar');
+    errorDiv.classList.add('hidden');
+    if (!firstName) { errorDiv.textContent = 'Ingres\u00E1 tu nombre'; errorDiv.classList.remove('hidden'); return; }
+    if (!phone) { errorDiv.textContent = 'Ingres\u00E1 tu n\u00FAmero de WhatsApp'; errorDiv.classList.remove('hidden'); return; }
+    if (phone.length < 8) { errorDiv.textContent = 'El n\u00FAmero de WhatsApp parece inv\u00E1lido.'; errorDiv.classList.remove('hidden'); return; }
+    btn.disabled = true; btn.textContent = 'Reservando...';
+    var startDt = selectedDate + ' ' + selectedSlot + ':00';
+    var endDt = selectedDate + ' ' + selectedSlotEnd + ':00';
+    fetch(API + '/customers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ firstName: firstName, lastName: lastName || firstName, email: '', phone: phone }) })
+    .then(function(r) { return r.json(); })
+    .then(function(customer) {
+      if (!customer || !customer.id) throw new Error('Error al crear cliente');
+      return fetch(API + '/appointments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ start: startDt, end: endDt, serviceId: selectedService.id, providerId: (config.providerId || 5), customerId: customer.id, notes: 'Reserva desde web' }) });
+    })
+    .then(function(r) {
+      if (!r.ok) return r.json().then(function(err) { var msg = err.error || err.message || 'Error'; if (err.detail) msg += ' (' + err.detail + ')'; throw new Error(msg); });
+      return r.json();
+    })
+    .then(function() {
+      var dateParts = selectedDate.split('-');
+      var fechaFormateada = dateParts[2] + '/' + dateParts[1] + '/' + dateParts[0];
+      document.getElementById('confResumen').innerHTML = '<strong>' + selectedService.name + '</strong><br>' + fechaFormateada + ' a las ' + selectedSlot.substring(0,5) + ' hs<br><span class="text-[#884e4f] font-semibold">$' + selectedService.price.toLocaleString('es-AR') + '</span>';
+      showStep(4);
+    })
+    .catch(function(err) { errorDiv.textContent = err.message || 'Error al crear el turno'; errorDiv.classList.remove('hidden'); })
+    .finally(function() { btn.disabled = false; btn.textContent = 'Confirmar turno'; });
+  };
+
+  window.resetBooking = function() {
+    selectedService = null; selectedDate = null; selectedSlot = null; selectedSlotEnd = null;
+    document.querySelectorAll('.bf-service-card').forEach(function(c) { c.classList.remove('selected'); });
+    document.getElementById('bfDate').value = '';
+    document.getElementById('bfFirstName').value = '';
+    document.getElementById('bfLastName').value = '';
+    document.getElementById('bfPhone').value = '';
+    document.getElementById('slotsContainer').innerHTML = '<div class="text-sm text-[#524343] py-5">Seleccion\u00E1 una fecha para ver los horarios disponibles</div>';
+    document.getElementById('step3Summary').innerHTML = '';
+    document.getElementById('btnStep1Next').disabled = true;
+    document.getElementById('btnStep2Next').disabled = true;
+    document.querySelectorAll('.step-dot').forEach(function(d, i) {
+      d.classList.remove('bg-[#884e4f]', 'text-white', 'shadow-md');
+      d.classList.add('bg-[#e4e2e1]', 'text-[#524343]');
+      if (i === 0) { d.classList.remove('bg-[#e4e2e1]', 'text-[#524343]'); d.classList.add('bg-[#884e4f]', 'text-white', 'shadow-md'); }
+    });
+    document.querySelectorAll('.step-line').forEach(function(l) { l.classList.remove('bg-[#884e4f]'); l.classList.add('bg-[#e4e2e1]'); });
+    showStep(1);
+  };
+
+  function renderGallery(images) {
+    var grid = document.getElementById('galleryGrid');
+    if (!images || images.length === 0) return;
+    var html = '';
+    images.forEach(function(img, i) {
+      var src = 'uploads/gallery/' + esc(img.filename);
+      html += '<div class="gallery-item relative aspect-square rounded-xl overflow-hidden cursor-pointer fade-in" data-index="' + i + '">' +
+        '<img src="' + src + '" alt="Trabajo ' + (i+1) + '" loading="lazy" class="w-full h-full object-cover">' +
+        '<div class="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors"></div>' +
+        '</div>';
+    });
+    grid.innerHTML = html;
+    observeFadeIn();
+    initLightbox();
+  }
+
+  function renderProfesionales(profs) {
+    var container = document.getElementById('professionalsContainer');
+    if (!profs || !profs.length) { container.innerHTML = ''; return; }
+    var single = profs.length === 1;
+    if (single) {
+      var p = profs[0];
+      var photoHtml = p.photo ? '<img src="' + p.photo + '" alt="' + esc(p.name) + '" class="w-full h-full object-cover">' : '<div class="text-center text-[#524343] p-8"><span class="text-4xl block mb-2">\u2728</span><span class="text-sm">Foto de ' + esc(p.name) + '</span></div>';
+      var highlights = (p.highlights || []).map(function(h) { return '<li class="flex items-start gap-2 text-[#524343]"><span class="text-[#884e4f] mt-1">\u2022</span><span>' + esc(h) + '</span></li>'; }).join('');
+      container.innerHTML = '<div class="grid md:grid-cols-2 gap-10 items-center max-w-4xl mx-auto">' +
+        '<div class="aspect-[4/5] rounded-2xl overflow-hidden bg-[#e4e2e1] flex items-center justify-center fade-in">' + photoHtml + '</div>' +
+        '<div class="fade-in">' +
+        '<h3 class="font-serif text-2xl md:text-3xl text-[#1b1c1c] mb-2 font-semibold">' + esc(p.name) + '</h3>' +
+        (p.title ? '<p class="text-[#884e4f] font-medium text-sm mb-4">' + esc(p.title) + '</p>' : '') +
+        (p.bio ? '<p class="text-[#524343] leading-relaxed mb-4">' + esc(p.bio) + '</p>' : '') +
+        (highlights ? '<ul class="space-y-1.5">' + highlights + '</ul>' : '') +
+        '</div></div>';
+    } else {
+      var gridHtml = '<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">';
+      profs.forEach(function(p) {
+        var photoHtml = p.photo ? '<img src="' + p.photo + '" alt="' + esc(p.name) + '" class="w-full h-full object-cover">' : '<div class="flex items-center justify-center h-full text-[#999]"><span class="text-4xl">\u2728</span></div>';
+        var highlights = (p.highlights || []).map(function(h) { return '<li class="flex items-start gap-2 text-sm"><span class="text-[#884e4f]">\u2022</span><span>' + esc(h) + '</span></li>'; }).join('');
+        gridHtml += '<div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#e4e2e1] fade-in">' +
+          '<div class="aspect-square bg-[#f0ebe7]">' + photoHtml + '</div>' +
+          '<div class="p-5">' +
+          '<h3 class="font-serif text-xl text-[#1b1c1c] font-semibold mb-1">' + esc(p.name) + '</h3>' +
+          (p.title ? '<p class="text-[#884e4f] text-sm font-medium mb-3">' + esc(p.title) + '</p>' : '') +
+          (p.bio ? '<p class="text-[#524343] text-sm leading-relaxed mb-3">' + esc(p.bio) + '</p>' : '') +
+          (highlights ? '<ul class="space-y-1">' + highlights + '</ul>' : '') +
+          '</div></div>';
+      });
+      gridHtml += '</div>';
+      container.innerHTML = gridHtml;
+    }
+    observeFadeIn();
+  }
+
+  function initLightbox() {
+    var items = document.querySelectorAll('.gallery-item img');
+    if (!items.length) return;
+    var lb = document.getElementById('lightbox'), lbImg = document.getElementById('lbImg');
+    var lbClose = document.getElementById('lbClose'), lbPrev = document.getElementById('lbPrev'), lbNext = document.getElementById('lbNext');
+    var currentIdx = 0, total = items.length;
+    items.forEach(function(img, idx) {
+      img.parentElement.addEventListener('click', function() { currentIdx = idx; lbImg.src = img.src; lb.classList.add('show'); });
+    });
+    lbClose.onclick = function(e) { e.stopPropagation(); lb.classList.remove('show'); };
+    lb.onclick = function(e) { if (e.target === lb) lb.classList.remove('show'); };
+    lbPrev.onclick = function(e) { e.stopPropagation(); currentIdx = (currentIdx - 1 + total) % total; lbImg.src = items[currentIdx].src; };
+    lbNext.onclick = function(e) { e.stopPropagation(); currentIdx = (currentIdx + 1) % total; lbImg.src = items[currentIdx].src; };
+    document.addEventListener('keydown', function(e) {
+      if (!lb.classList.contains('show')) return;
+      if (e.key === 'Escape') lb.classList.remove('show');
+      if (e.key === 'ArrowLeft') { currentIdx = (currentIdx - 1 + total) % total; lbImg.src = items[currentIdx].src; }
+      if (e.key === 'ArrowRight') { currentIdx = (currentIdx + 1) % total; lbImg.src = items[currentIdx].src; }
+    });
+  }
+
+  // Mobile menu
+  var hamburger = document.getElementById('hamburger');
+  var mobileMenu = document.getElementById('mobileMenu');
+  if (hamburger && mobileMenu) {
+    hamburger.addEventListener('click', function() { mobileMenu.classList.toggle('hidden'); });
+    mobileMenu.querySelectorAll('a').forEach(function(a) {
+      a.addEventListener('click', function() { mobileMenu.classList.add('hidden'); });
+    });
+  }
+
+  // Smooth scroll
+  document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+    a.addEventListener('click', function(e) {
+      e.preventDefault();
+      var target = document.querySelector(this.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  // Sticky nav shadow
+  window.addEventListener('scroll', function() {
+    var nav = document.querySelector('nav');
+    if (window.scrollY > 20) nav.classList.add('shadow-md');
+    else nav.classList.remove('shadow-md');
+  });
+
+  function observeFadeIn() {
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('show'); });
+    }, { threshold: .1 });
+    document.querySelectorAll('.fade-in').forEach(function(el) { observer.observe(el); });
+  }
+  observeFadeIn();
+
+  function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+})();
+</script>
+</body>
+</html>

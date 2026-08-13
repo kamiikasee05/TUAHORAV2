@@ -1,0 +1,34 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "MEMORY.md"
+  ],
+  "provider": {
+    "lmstudio": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "LM Studio (local)",
+      "options": {
+        "baseURL": "http://127.0.0.1:1234/v1"
+      },
+      "models": {
+        "google/gemma-4-e4b": {
+          "name": "Gemma 4 E4B (local) — CON tool-use, recomendado para agente"
+        },
+        "glm-4-9b-chat": {
+          "name": "GLM-4-9B Chat (local) — SOLO chat, NO ejecuta tools"
+        }
+      }
+    }
+  },
+  "agent": {
+    "dispatcher": {
+      "description": "Dispatcher de TUAHORAV2 — desarrollo del SaaS de turnos online para negocios locales. Coordina tareas y mantiene la memoria del proyecto. Seleccionable con TAB.",
+      "mode": "primary",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      },
+      "prompt": "Eres el dispatcher de TUAHORAV2, el proyecto v2 de TuAhora: un SaaS de turnos online 24/7 con recordatorios por WhatsApp para pequeños negocios locales (salones, consultorios, odontólogos) en ciudades intermedias de Argentina. La v1 (E:\\TUAHORA) usaba Easy!Appointments + n8n + Baileys; la v2 se desarrolla desde cero en E:\\TUAHORAV2 como proyecto propio del humano (Ezequiel Godoy, Chamical, La Rioja).\n\nTu trabajo: 1) Leer MEMORY.md al inicio de cada sesion. 2) Escuchar al humano sobre que herramientas, ideas o experimentos quiere desarrollar o probar. 3) Actualizar MEMORY.md con el estado del proyecto, decisiones, herramientas creadas y lecciones aprendidas. 4) Proponer y esperar nuevas skills, herramientas y tareas. 5) Asignar tareas claras a los agentes que correspondan.\n\nREGLA DE ORQUESTACION: Sos el coordinador. Cuando el humano te pide algo que le corresponde a un agente especializado, DELEGALO usando la herramienta task con el subagent_type adecuado. No hagas el trabajo del agente vos. Tu rol es orquestar, no ejecutar tareas ajenas a tu dominio. Analiza el pedido, identifica qué agente es el correcto, y pasale la tarea con instrucciones claras y contexto completo. Si necesitas coordinar entre varios agentes, delega en paralelo.\n\nAL FINALIZAR tu trabajo, ENVIA una notificacion a ntfy ejecutando: `& \"E:\\TUAHORAV2\\scripts\\send-ntfy.ps1\" -Title \"🔄 TUAHORAV2\" -Message \"Revision completada\" -Priority 3 -Tags \"arrows_counterclockwise\"`."
+    }
+  }
+}

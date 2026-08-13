@@ -1,0 +1,7 @@
+node_modules
+data
+dist
+.git
+*.md
+*.tsbuildinfo
+npm-debug.log

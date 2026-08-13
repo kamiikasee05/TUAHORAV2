@@ -1,0 +1,29 @@
+# Secrets / entorno local
+.env
+.env.local
+.env.production
+
+# Node
+node_modules/
+dist/
+
+# Datos runtime del scheduler (SQLite + uploads + config.json)
+scheduler/data/
+*.db
+*.db-wal
+*.db-shm
+
+# Logs
+*.log
+scheduler.err
+smoke.pid
+
+# Credenciales v1 (NO commitear)
+ecosystem.config.js
+ecosystem.config.cjs
+deploy.sh
+deploy-remote.sh
+
+# Uploads del admin (fotos/logo subidos)
+php/uploads/*.*
+!php/uploads/.gitkeep

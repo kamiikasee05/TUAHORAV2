@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TuAhora — Soporte</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #f1f5f9; }
+.sidebar { width: 240px; background: #0f172a; color: #fff; position: fixed; top: 0; left: 0; height: 100vh; z-index: 50; }
+.main { margin-left: 240px; min-height: 100vh; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 12px 20px; cursor: pointer; color: #94a3b8; transition: all .15s; border-left: 3px solid transparent; }
+.nav-item:hover { background: #1e293b; color: #e2e8f0; }
+.nav-item.active { background: #1e293b; color: #fff; border-left-color: #3b82f6; }
+.nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+.stat-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.stat-value { font-size: 2rem; font-weight: 700; line-height: 1.2; }
+.stat-label { font-size: .875rem; color: #64748b; margin-top: 4px; }
+.badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: .75rem; font-weight: 600; }
+.badge-confirmed { background: #dcfce7; color: #166534; }
+.badge-cancelled { background: #fef2f2; color: #991b1b; }
+.badge-ok { background: #dcfce7; color: #166534; }
+.badge-error { background: #fef2f2; color: #991b1b; }
+.badge-timeout { background: #fef9c3; color: #854d0e; }
+.badge-checking { background: #f1f5f9; color: #475569; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; padding: 10px 12px; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: #64748b; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-size: .875rem; }
+tr:hover td { background: #f8fafc; }
+input, select, textarea { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; font-size: .875rem; outline: none; width: 100%; }
+input:focus, select:focus, textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: .875rem; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
+.btn-primary { background: #3b82f6; color: #fff; }
+.btn-primary:hover { background: #2563eb; }
+.btn-danger { background: #ef4444; color: #fff; }
+.btn-danger:hover { background: #dc2626; }
+.btn-outline { background: transparent; border: 1px solid #e2e8f0; color: #475569; }
+.btn-outline:hover { background: #f8fafc; }
+.btn-sm { padding: 4px 10px; font-size: .75rem; }
+.hidden { display: none !important; }
+.tab-content { animation: fadeIn .2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+#toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; }
+.toast-msg { padding: 12px 20px; border-radius: 8px; color: #fff; font-size: .875rem; margin-top: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.15); animation: slideIn .2s ease; }
+.toast-success { background: #16a34a; }
+.toast-error { background: #dc2626; }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; display: flex; align-items: center; justify-content: center; }
+.modal-content { background: #fff; border-radius: 12px; padding: 24px; max-width: 640px; width: 90%; max-height: 80vh; overflow-y: auto; }
+@media (max-width: 768px) {
+  .sidebar { width: 60px; }
+  .sidebar .nav-label { display: none; }
+  .main { margin-left: 60px; }
+}
+</style>
+</head>
+<body>
+
+<div id="login-screen" class="flex items-center justify-center min-h-screen bg-slate-900">
+  <div class="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl">
+    <div class="text-center mb-6">
+      <div class="text-3xl font-bold text-slate-900">TuAhora</div>
+      <div class="text-sm text-slate-500 mt-1">Dashboard de Soporte</div>
+    </div>
+    <div id="login-error" class="hidden text-sm text-red-600 bg-red-50 rounded-lg p-3 mb-4"></div>
+    <input id="login-key" type="password" placeholder="API Key" class="mb-4" autofocus>
+    <button onclick="login()" class="btn btn-primary w-full justify-center text-base py-3">Ingresar</button>
+    <p class="text-xs text-slate-400 text-center mt-4">Ingresá la API Key del scheduler</p>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <aside class="sidebar">
+    <div class="flex items-center gap-3 px-5 py-5 border-b border-slate-800">
+      <div class="text-xl font-bold">TuAhora</div>
+    </div>
+    <nav class="mt-2">
+      <div class="nav-item active" onclick="switchTab('dashboard')" data-tab="dashboard">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span class="nav-label">Dashboard</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('turnos')" data-tab="turnos">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span class="nav-label">Turnos</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('clientes')" data-tab="clientes">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/></svg>
+        <span class="nav-label">Clientes</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('monitoreo')" data-tab="monitoreo">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        <span class="nav-label">Monitoreo</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('whatsapp')" data-tab="whatsapp">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        <span class="nav-label">WhatsApp</span>
+      </div>
+    </nav>
+    <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-800">
+      <div class="nav-item" onclick="logout()">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        <span class="nav-label">Salir</span>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-40">
+      <h1 id="tab-title" class="text-lg font-semibold text-slate-900">Dashboard</h1>
+      <div id="openwa-badge" class="badge badge-checking">OpenWA verificando...</div>
+    </header>
+
+    <div class="p-6">
+
+      <!-- Dashboard Tab -->
+      <div id="tab-dashboard" class="tab-content">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="stats-grid">
+          <div class="stat-card"><div class="stat-value" id="stat-hoy">-</div><div class="stat-label">Turnos hoy</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-semana">-</div><div class="stat-label">Esta semana</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-mes">-</div><div class="stat-label">Este mes</div></div>
+          <div class="stat-card"><div class="stat-value" id="stat-clientes">-</div><div class="stat-label">Clientes registrados</div></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-6">
+          <h2 class="font-semibold text-slate-900 mb-4">Próximos turnos</h2>
+          <div id="next-appointments"><p class="text-slate-400 text-sm">Cargando...</p></div>
+        </div>
+      </div>
+
+      <!-- Turnos Tab -->
+      <div id="tab-turnos" class="tab-content hidden">
+        <div class="bg-white rounded-xl shadow-sm p-6">
+          <div class="flex flex-wrap gap-3 mb-4">
+            <select id="turnos-filter" class="w-auto" onchange="loadTurnos()">
+              <option value="all">Todos los estados</option>
+              <option value="confirmed">Confirmados</option>
+              <option value="cancelled">Cancelados</option>
+            </select>
+            <input id="turnos-search" placeholder="Buscar por cliente o teléfono..." class="w-auto flex-1 min-w-[200px]" oninput="loadTurnos()">
+            <button class="btn btn-outline btn-sm" onclick="loadTurnos()">Actualizar</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table>
+              <thead><tr><th>Fecha</th><th>Hora</th><th>Cliente</th><th>Teléfono</th><th>Servicio</th><th>Estado</th><th></th></tr></thead>
+              <tbody id="turnos-tbody"></tbody>
+            </table>
+          </div>
+          <p id="turnos-empty" class="text-slate-400 text-sm text-center py-8 hidden">No se encontraron turnos</p>
+        </div>
+      </div>
+
+      <!-- Clientes Tab -->
+      <div id="tab-clientes" class="tab-content hidden">
+        <div class="bg-white rounded-xl shadow-sm p-6">
+          <div class="flex gap-3 mb-4">
+            <input id="clientes-search" placeholder="Buscar por nombre, teléfono o email..." oninput="loadClientes()">
+          </div>
+          <div class="overflow-x-auto">
+            <table>
+              <thead><tr><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Turnos</th><th></th></tr></thead>
+              <tbody id="clientes-tbody"></tbody>
+            </table>
+          </div>
+          <p id="clientes-empty" class="text-slate-400 text-sm text-center py-8 hidden">No se encontraron clientes</p>
+        </div>
+      </div>
+
+      <!-- Monitoreo Tab -->
+      <div id="tab-monitoreo" class="tab-content hidden">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6" id="health-grid">
+          <div class="stat-card"><div class="stat-value text-lg" id="health-scheduler">-</div><div class="stat-label">Scheduler API</div></div>
+          <div class="stat-card"><div class="stat-value text-lg" id="health-openwa">-</div><div class="stat-label">OpenWA</div></div>
+          <div class="stat-card"><div class="stat-value text-lg" id="health-redis">-</div><div class="stat-label">Redis</div></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-6">
+          <h2 class="font-semibold text-slate-900 mb-3">Configuración del entorno</h2>
+          <pre id="env-config" class="text-xs text-slate-600 bg-slate-50 rounded-lg p-4 overflow-x-auto"></pre>
+        </div>
+      </div>
+
+      <!-- WhatsApp Tab -->
+      <div id="tab-whatsapp" class="tab-content hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <h2 class="font-semibold text-slate-900 mb-4">Enviar mensaje manual</h2>
+            <div class="space-y-3">
+              <input id="wa-phone" placeholder="Teléfono (ej: 5493826403110)">
+              <textarea id="wa-message" rows="4" placeholder="Mensaje..."></textarea>
+              <button onclick="sendWhatsApp()" class="btn btn-primary">Enviar WhatsApp</button>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <h2 class="font-semibold text-slate-900 mb-4">Estado de conexión</h2>
+            <div id="wa-status" class="text-slate-500 text-sm">Cargando...</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div id="modal" class="modal-overlay hidden" onclick="if(event.target===this)closeModal()">
+  <div class="modal-content">
+    <div id="modal-body"></div>
+    <div class="text-right mt-4"><button class="btn btn-outline btn-sm" onclick="closeModal()">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+let API_KEY = '';
+const BASE = '/api/v1';
+
+function login() {
+  const key = document.getElementById('login-key').value.trim();
+  if (!key) return;
+  API_KEY = key;
+  sessionStorage.setItem('support_api_key', key);
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  init();
+}
+
+function logout() {
+  API_KEY = '';
+  sessionStorage.removeItem('support_api_key');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast-msg toast-' + type;
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function api(path, opts = {}) {
+  const headers = { 'X-API-Key': API_KEY, ...opts.headers };
+  if (opts.body) headers['Content-Type'] = 'application/json';
+  return fetch(BASE + path, { ...opts, headers })
+    .then(r => {
+      if (r.status === 401) { logout(); throw new Error('API key inválida'); }
+      return r.json();
+    });
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelector(`.nav-item[data-tab="${name}"]`)?.classList.add('active');
+  document.getElementById(`tab-${name}`).classList.remove('hidden');
+  const titles = { dashboard: 'Dashboard', turnos: 'Turnos', clientes: 'Clientes', monitoreo: 'Monitoreo', whatsapp: 'WhatsApp' };
+  document.getElementById('tab-title').textContent = titles[name] || name;
+
+  if (name === 'dashboard') { loadDashboard(); loadOpenWAStatus(); }
+  if (name === 'turnos') loadTurnos();
+  if (name === 'clientes') loadClientes();
+  if (name === 'monitoreo') loadHealth();
+  if (name === 'whatsapp') { loadOpenWAStatus(); }
+}
+
+function init() {
+  loadDashboard();
+  loadOpenWAStatus();
+  setInterval(() => { if (!document.getElementById('tab-dashboard').classList.contains('hidden')) loadDashboard(); }, 30000);
+}
+
+function loadDashboard() {
+  api('/support/stats').then(d => {
+    document.getElementById('stat-hoy').textContent = d.today.confirmed;
+    document.getElementById('stat-semana').textContent = d.week.confirmed;
+    document.getElementById('stat-mes').textContent = d.month.confirmed;
+    document.getElementById('stat-clientes').textContent = d.totalCustomers;
+
+    const el = document.getElementById('next-appointments');
+    if (!d.nextAppointments.length) {
+      el.innerHTML = '<p class="text-slate-400 text-sm">No hay turnos próximos</p>';
+    } else {
+      el.innerHTML = `<table><thead><tr><th>Fecha</th><th>Hora</th><th>Cliente</th><th>Servicio</th></tr></thead><tbody>
+        ${d.nextAppointments.map(a => `<tr>
+          <td>${a.start.split(' ')[0]}</td>
+          <td>${a.start.split(' ')[1]?.substring(0,5)||''}</td>
+          <td>${esc(a.customerName)}</td>
+          <td>${esc(a.serviceName)}</td>
+        </tr>`).join('')}
+      </tbody></table>`;
+    }
+  }).catch(e => toast(e.message, 'error'));
+}
+
+function loadTurnos() {
+  const status = document.getElementById('turnos-filter').value;
+  const q = document.getElementById('turnos-search').value.trim();
+  let url = '/appointments?sort=-start&with=customer,service';
+  if (status !== 'all') url += '&status=' + status;
+  if (q) {
+    api('/support/search?q=' + encodeURIComponent(q)).then(d => {
+      renderTurnos(d.appointments);
+    }).catch(e => toast(e.message, 'error'));
+    return;
+  }
+  api(url).then(d => renderTurnos(d)).catch(e => toast(e.message, 'error'));
+}
+
+function renderTurnos(appointments) {
+  const tbody = document.getElementById('turnos-tbody');
+  const empty = document.getElementById('turnos-empty');
+  if (!appointments || !appointments.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  tbody.innerHTML = appointments.map(a => {
+    const date = a.start.split(' ')[0];
+    const time = (a.start.split(' ')[1] || '').substring(0, 5);
+    const name = a.customer ? `${esc(a.customer.firstName)} ${esc(a.customer.lastName||'')}`.trim() : esc(a.customerName||'');
+    const phone = a.customer ? esc(a.customer.phone) : esc(a.phone||'');
+    const svc = a.service ? esc(a.service.name) : esc(a.serviceName||'');
+    return `<tr>
+      <td>${date}</td>
+      <td>${time}</td>
+      <td class="font-medium">${name}</td>
+      <td>${phone}</td>
+      <td>${svc}</td>
+      <td><span class="badge badge-${a.status === 'confirmed' ? 'confirmed' : 'cancelled'}">${a.status === 'confirmed' ? 'Confirmado' : 'Cancelado'}</span></td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="viewAppointment(${a.id})">Ver</button>
+        ${a.status === 'confirmed' ? `<button class="btn btn-danger btn-sm" onclick="cancelAppointment(${a.id})">Cancelar</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function viewAppointment(id) {
+  api('/appointments/' + id + '?with=customer,service,provider').then(a => {
+    const date = a.start.split(' ')[0];
+    const time = (a.start.split(' ')[1] || '').substring(0, 5);
+    const name = a.customer ? esc(a.customer.firstName) + ' ' + esc(a.customer.lastName||'') : '';
+    const svc = a.service ? esc(a.service.name) : '';
+    const phone = a.customer ? esc(a.customer.phone) : '';
+    const prof = a.provider ? esc(a.provider.profesional || a.provider.firstName || '') : '';
+
+    document.getElementById('modal-body').innerHTML = `
+      <h3 class="text-lg font-semibold mb-4">Turno #${a.id}</h3>
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <div><span class="text-slate-500">Fecha:</span> ${date}</div>
+        <div><span class="text-slate-500">Hora:</span> ${time}</div>
+        <div><span class="text-slate-500">Cliente:</span> ${name}</div>
+        <div><span class="text-slate-500">Teléfono:</span> ${phone}</div>
+        <div><span class="text-slate-500">Servicio:</span> ${svc}</div>
+        <div><span class="text-slate-500">Profesional:</span> ${prof || '-'}</div>
+        <div><span class="text-slate-500">Estado:</span> <span class="badge badge-${a.status === 'confirmed' ? 'confirmed' : 'cancelled'}">${a.status === 'confirmed' ? 'Confirmado' : 'Cancelado'}</span></div>
+        <div><span class="text-slate-500">Notas:</span> ${esc(a.notes) || '-'}</div>
+      </div>
+      ${a.status === 'confirmed' ? `<div class="mt-4"><button class="btn btn-danger" onclick="cancelAppointment(${a.id});closeModal()">Cancelar este turno</button></div>` : ''}
+      <div class="mt-3"><a href="#" class="text-blue-600 text-sm" onclick="openChat('${phone}');return false">Enviar WhatsApp al cliente</a></div>
+    `;
+    document.getElementById('modal').classList.remove('hidden');
+  }).catch(e => toast(e.message, 'error'));
+}
+
+function cancelAppointment(id) {
+  if (!confirm('¿Cancelar este turno?')) return;
+  api('/appointments/' + id + '/cancel').then(d => {
+    toast('Turno #' + d.id + ' cancelado');
+    loadTurnos();
+    loadDashboard();
+  }).catch(e => toast(e.message, 'error'));
+}
+
+function loadClientes() {
+  const q = document.getElementById('clientes-search').value.trim();
+  if (!q || q.length < 2) {
+    document.getElementById('clientes-tbody').innerHTML = '';
+    document.getElementById('clientes-empty').classList.remove('hidden');
+    document.getElementById('clientes-empty').textContent = 'Ingresá al menos 2 caracteres para buscar';
+    return;
+  }
+  api('/support/search?q=' + encodeURIComponent(q)).then(d => {
+    const tbody = document.getElementById('clientes-tbody');
+    const empty = document.getElementById('clientes-empty');
+    if (!d.customers.length) {
+      tbody.innerHTML = '';
+      empty.classList.remove('hidden');
+      empty.textContent = 'No se encontraron clientes';
+      return;
+    }
+    empty.classList.add('hidden');
+    tbody.innerHTML = d.customers.map(c => {
+      const cApps = d.appointments.filter(a => a.phone === c.phone);
+      return `<tr>
+        <td class="font-medium">${esc(c.firstName)} ${esc(c.lastName||'')}</td>
+        <td>${esc(c.phone)}</td>
+        <td>${esc(c.email||'')}</td>
+        <td>${cApps.length}</td>
+        <td>
+          <button class="btn btn-outline btn-sm" onclick="viewCustomer(${c.id})">Ver</button>
+          <button class="btn btn-outline btn-sm" onclick="openChat('${c.phone}')">WhatsApp</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    if (d.appointments.length && !d.customers.length) {
+      document.getElementById('clientes-tbody').innerHTML += d.appointments.slice(0, 5).map(a =>
+        `<tr><td colspan="5" class="text-slate-400 text-xs">Turno #${a.id}: ${esc(a.customerName)} — ${a.start.split(' ')[0]} (${a.status})</td></tr>`
+      ).join('');
+    }
+  }).catch(e => toast(e.message, 'error'));
+}
+
+function viewCustomer(id) {
+  api('/customers/' + id).then(c => {
+    api('/appointments?customer_id=' + id + '&with=customer,service&sort=-start').then(appts => {
+      document.getElementById('modal-body').innerHTML = `
+        <h3 class="text-lg font-semibold mb-4">${esc(c.firstName)} ${esc(c.lastName||'')}</h3>
+        <div class="text-sm space-y-1 mb-4">
+          <div><span class="text-slate-500">Teléfono:</span> ${esc(c.phone)}</div>
+          <div><span class="text-slate-500">Email:</span> ${esc(c.email) || '-'}</div>
+          <div><span class="text-slate-500">Turnos totales:</span> ${appts.length}</div>
+        </div>
+        <h4 class="font-semibold text-sm text-slate-700 mb-2">Historial de turnos</h4>
+        ${appts.length ? `<table><thead><tr><th>Fecha</th><th>Servicio</th><th>Estado</th></tr></thead><tbody>
+          ${appts.map(a => `<tr>
+            <td>${a.start.split(' ')[0]} ${(a.start.split(' ')[1]||'').substring(0,5)}</td>
+            <td>${a.service ? esc(a.service.name) : '-'}</td>
+            <td><span class="badge badge-${a.status === 'confirmed' ? 'confirmed' : 'cancelled'}">${a.status === 'confirmed' ? 'Confirmado' : 'Cancelado'}</span></td>
+          </tr>`).join('')}
+        </tbody></table>` : '<p class="text-slate-400 text-sm">Sin turnos registrados</p>'}
+      `;
+      document.getElementById('modal').classList.remove('hidden');
+    });
+  }).catch(e => toast(e.message, 'error'));
+}
+
+function loadHealth() {
+  api('/support/health').then(d => {
+    const statusMap = { ok: '✅', error: '❌', checking: '⏳', disabled: '⏸️', timeout: '⏰', configured: '✅ configurado' };
+    document.getElementById('health-scheduler').innerHTML = `${statusMap[d.scheduler.status] || '?'} Scheduler <span class="text-sm text-slate-400">uptime: ${fmtUptime(d.scheduler.uptime)}</span>`;
+    document.getElementById('health-openwa').innerHTML = `${statusMap[d.openwa.status] || '?'} OpenWA <span class="text-sm text-slate-400">${d.openwa.status}</span>`;
+    document.getElementById('health-redis').innerHTML = `${statusMap[d.redis.status] || '?'} Redis <span class="text-sm text-slate-400">${d.redis.status}</span>`;
+    document.getElementById('env-config').textContent = JSON.stringify(d.env, null, 2);
+  }).catch(e => toast(e.message, 'error'));
+}
+
+function loadOpenWAStatus() {
+  api('/support/health').then(d => {
+    const badge = document.getElementById('openwa-badge');
+    if (d.openwa.status === 'ok') {
+      badge.className = 'badge badge-ok';
+      badge.textContent = 'OpenWA ✅ Conectado';
+    } else if (d.openwa.status === 'checking') {
+      badge.className = 'badge badge-checking';
+      badge.textContent = 'OpenWA ⏳';
+    } else {
+      badge.className = 'badge badge-error';
+      badge.textContent = 'OpenWA ❌ ' + d.openwa.status;
+    }
+    const waStatus = document.getElementById('wa-status');
+    if (waStatus) {
+      waStatus.innerHTML = `<div class="text-sm space-y-2">
+        <div><span class="text-slate-500">OpenWA:</span> ${d.openwa.status === 'ok' ? '✅ Conectado' : '❌ ' + d.openwa.status}</div>
+        <div><span class="text-slate-500">Sesión:</span> ${d.env.sessionId}</div>
+        <div><span class="text-slate-500">Host:</span> ${d.env.openwaHost}:${d.env.openwaPort}</div>
+      </div>`;
+    }
+  }).catch(() => {});
+}
+
+function sendWhatsApp() {
+  const phone = document.getElementById('wa-phone').value.trim();
+  const message = document.getElementById('wa-message').value.trim();
+  if (!phone || !message) { toast('Completá teléfono y mensaje', 'error'); return; }
+  api('/whatsapp/send', {
+    method: 'POST',
+    body: JSON.stringify({ phone, message }),
+  }).then(d => {
+    if (d.success) { toast('Mensaje enviado'); document.getElementById('wa-message').value = ''; }
+    else toast('Error: ' + (d.message || 'desconocido'), 'error');
+  }).catch(e => toast(e.message, 'error'));
+}
+
+function openChat(phone) {
+  switchTab('whatsapp');
+  document.getElementById('wa-phone').value = phone.replace(/[^0-9]/g, '');
+}
+
+function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function fmtUptime(s) {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return h + 'h ' + m + 'm';
+}
+
+// Check stored API key on load
+const stored = sessionStorage.getItem('support_api_key');
+if (stored) {
+  API_KEY = stored;
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  init();
+} else {
+  document.getElementById('login-key').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+    "brand": {
+        "name": "Tu Marca",
+        "tagline": "Tu eslogan aquí",
+        "address": "Calle 123, Ciudad",
+        "whatsapp": "5490000000000",
+        "instagram": "@tu_marca",
+        "profesional": "Nombre del Profesional"
+    },
+    "colors": {
+        "primary": "#e8a0a0",
+        "secondary": "#f5f0f0",
+        "accent": "#b56576",
+        "text": "#2d2d2d",
+        "background": "#ffffff"
+    },
+    "logo": "uploads/logo.png",
+    "gallery": []
+}
