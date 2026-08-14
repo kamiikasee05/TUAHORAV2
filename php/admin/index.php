@@ -30,11 +30,54 @@ function saveConfig(array $data): bool {
     if ($json === false) return false;
     $result = @file_put_contents($configFile, $json);
     if ($result === false) return false;
-    $landingFile = __DIR__ . '/../../web/config.json';
-    $public = $data;
-    unset($public['password']);
-    @file_put_contents($landingFile, json_encode($public, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    // LEGACY: ya no se replica a web/config.json. La landing (SPA) la sirve el
+    // Scheduler desde scheduler/data/config.json via GET /config.json; php/config.json
+    // queda solo como cache local (professionals + fallback si el Scheduler no responde).
     return true;
+}
+
+function schedulerBranding(): ?array {
+    $res = schedulerApiCall('branding');
+    if (($res['httpCode'] ?? 0) === 200 && is_array($res['data'])) {
+        return $res['data'];
+    }
+    return null;
+}
+
+function schedulerBaseUrl(): string {
+    return rtrim(preg_replace('#/api/v1/?$#', '', schedulerApiUrl()), '/');
+}
+
+function normalizeGalleryItems(array $gallery): array {
+    $items = [];
+    foreach ($gallery as $g) {
+        if (is_array($g) && isset($g['filename'])) {
+            $items[] = $g;
+        } elseif (is_string($g)) {
+            $items[] = ['filename' => basename($g)];
+        }
+    }
+    return $items;
+}
+
+function buildMultipartBody(array $parts): array {
+    $boundary = '----FormBoundary' . bin2hex(random_bytes(8));
+    $body = '';
+    foreach ($parts as $p) {
+        $body .= '--' . $boundary . "\r\n";
+        if (isset($p['path'])) {
+            $body .= 'Content-Disposition: form-data; name="' . $p['name'] . '"; filename="' . $p['filename'] . "\"\r\n";
+            $body .= 'Content-Type: ' . $p['type'] . "\r\n\r\n";
+            $body .= file_get_contents($p['path']);
+            $body .= "\r\n";
+        } else {
+            $body .= 'Content-Disposition: form-data; name="' . $p['name'] . "\"\r\n\r\n";
+            $body .= $p['value'];
+            $body .= "\r\n";
+        }
+    }
+    $body .= '--' . $boundary . "--\r\n";
+    return [$body, $boundary];
 }
 
 function jsonResponse(array $data, int $code = 200): void {
@@ -44,11 +87,6 @@ function jsonResponse(array $data, int $code = 200): void {
     echo json_encode($data);
     exit;
 }
-
-$uploadDir = __DIR__ . '/../uploads/';
-$galleryDir = $uploadDir . 'gallery/';
-if (!is_dir($galleryDir)) { mkdir($galleryDir, 0755, true); }
-if (!is_dir($uploadDir)) { mkdir($uploadDir, 0755, true); }
 
 $isLoggedIn = ($_SESSION['tetoca_admin'] ?? false) === true;
 
@@ -108,22 +146,12 @@ if ($isLoggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action
         if (!saveConfig($config)) {
             jsonResponse(['error' => 'No se puede guardar: permisos de escritura en config.json'], 500);
         }
-        $schedulerUrl = getenv('SCHEDULER_URL') ?: 'http://127.0.0.1:3000/api/v1';
-        $apiKey = getenv('SCHEDULER_API_KEY') ?: '';
-        $syncPayload = json_encode([
-            'address' => $brand['address'],
-            'profesional' => $brand['profesional'],
-        ]);
-        $ch = curl_init($schedulerUrl . '/providers/' . providerId());
-        curl_setopt_array($ch, [
-            CURLOPT_CUSTOMREQUEST => 'PUT',
-            CURLOPT_POSTFIELDS => $syncPayload,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'X-API-Key: ' . $apiKey],
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 5,
-        ]);
-        curl_exec($ch);
-        curl_close($ch);
+        // Scheduler = fuente de verdad del branding (hace syncProvider internamente).
+        $res = schedulerApiCall('branding', 'PUT', ['brand' => $brand]);
+        if (($res['httpCode'] ?? 0) < 200 || ($res['httpCode'] ?? 0) >= 300) {
+            $detail = is_array($res['data']) ? ($res['data']['message'] ?? json_encode($res['data'])) : ($res['error'] ?: 'Scheduler no disponible');
+            jsonResponse(['error' => 'Marca guardada en caché, pero el Scheduler no se actualizó: ' . $detail], 502);
+        }
         jsonResponse(['success' => true, 'brand' => $brand]);
     }
 
@@ -138,6 +166,11 @@ if ($isLoggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action
         if (!saveConfig($config)) {
             jsonResponse(['error' => 'No se puede guardar: permisos de escritura en config.json'], 500);
         }
+        $res = schedulerApiCall('branding', 'PUT', ['colors' => $colors]);
+        if (($res['httpCode'] ?? 0) < 200 || ($res['httpCode'] ?? 0) >= 300) {
+            $detail = is_array($res['data']) ? ($res['data']['message'] ?? json_encode($res['data'])) : ($res['error'] ?: 'Scheduler no disponible');
+            jsonResponse(['error' => 'Colores guardados en caché, pero el Scheduler no se actualizó: ' . $detail], 502);
+        }
         jsonResponse(['success' => true, 'colors' => $colors]);
     }
 
@@ -146,81 +179,96 @@ if ($isLoggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action
             jsonResponse(['error' => 'Error al subir el archivo'], 400);
         }
         $file = $_FILES['logo'];
-        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        if ($ext !== 'png') { jsonResponse(['error' => 'Solo se permiten archivos PNG'], 400); }
-        if ($file['size'] > 2 * 1024 * 1024) { jsonResponse(['error' => 'Máximo 2MB'], 400); }
-        $tmpPath = $file['tmp_name'];
-        $imgInfo = getimagesize($tmpPath);
-        if (!$imgInfo || $imgInfo[2] !== IMAGETYPE_PNG) { jsonResponse(['error' => 'Solo imágenes PNG válidas'], 400); }
-        $src = imagecreatefrompng($tmpPath);
-        if (!$src) { jsonResponse(['error' => 'No se pudo procesar la imagen'], 400); }
-        $origW = imagesx($src); $origH = imagesy($src); $maxW = 400;
-        if ($origW > $maxW) {
-            $newW = $maxW; $newH = (int)($origH * ($maxW / $origW));
-            $dst = imagecreatetruecolor($newW, $newH);
-            imagealphablending($dst, false); imagesavealpha($dst, true);
-            imagecopyresampled($dst, $src, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
-            imagedestroy($src); $src = $dst;
+        // Forward al Scheduler: valida mime/magia de bytes y guarda en scheduler/data/uploads/.
+        $url = schedulerApiUrl() . '/branding/logo';
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => ['file' => new CURLFile($file['tmp_name'], $file['type'], $file['name'])],
+            CURLOPT_HTTPHEADER => ['X-API-Key: ' . ($_ENV['SCHEDULER_API_KEY'] ?? '')],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15,
+        ]);
+        $body = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err = curl_error($ch);
+        $resp = json_decode($body, true);
+        if ($code < 200 || $code >= 300 || !($resp['success'] ?? false)) {
+            jsonResponse(['error' => 'El Scheduler rechazó el logo: ' . ($resp['message'] ?? ($err ?: 'error desconocido'))], 502);
         }
-        $destPath = $uploadDir . 'logo.png';
-        imagepng($src, $destPath, 8); imagedestroy($src);
-        $config['logo'] = 'uploads/logo.png';
-        if (!saveConfig($config)) {
-            jsonResponse(['error' => 'No se puede guardar: permisos de escritura en config.json'], 500);
-        }
-        jsonResponse(['success' => true, 'logo' => 'uploads/logo.png?' . time()]);
+        $config['logo'] = $resp['logo'] ?? '';
+        saveConfig($config);
+        jsonResponse(['success' => true, 'logo' => $config['logo']]);
     }
 
     if ($action === 'delete_logo') {
-        $logoFile = $uploadDir . 'logo.png';
-        if (file_exists($logoFile)) { unlink($logoFile); }
-        $config['logo'] = '';
-        if (!saveConfig($config)) {
-            jsonResponse(['error' => 'No se puede guardar: permisos de escritura en config.json'], 500);
+        $res = schedulerApiCall('branding/logo', 'DELETE');
+        if (($res['httpCode'] ?? 0) < 200 || ($res['httpCode'] ?? 0) >= 300) {
+            $detail = is_array($res['data']) ? ($res['data']['message'] ?? json_encode($res['data'])) : ($res['error'] ?: 'Scheduler no disponible');
+            jsonResponse(['error' => 'No se pudo eliminar el logo en el Scheduler: ' . $detail], 502);
         }
+        $config['logo'] = '';
+        saveConfig($config);
         jsonResponse(['success' => true]);
     }
 
     if ($action === 'upload_gallery') {
         if (empty($_FILES['images'])) { jsonResponse(['error' => 'No se recibieron imágenes'], 400); }
-        $files = $_FILES['images']; $gallery = $config['gallery'] ?? []; $added = 0; $errors = [];
+        $files = $_FILES['images'];
+        $parts = [];
         for ($i = 0; $i < count($files['name']); $i++) {
             if ($files['error'][$i] !== UPLOAD_ERR_OK) continue;
-            if (count($gallery) >= 10) { $errors[] = 'Máximo 10 imágenes'; break; }
-            $ext = strtolower(pathinfo($files['name'][$i], PATHINFO_EXTENSION));
-            if (!in_array($ext, ['jpg', 'jpeg', 'png'])) { $errors[] = $files['name'][$i] . ': Solo JPG y PNG'; continue; }
-            if ($files['size'][$i] > 5 * 1024 * 1024) { $errors[] = $files['name'][$i] . ': Máximo 5MB'; continue; }
-            $uniqueName = uniqid('img_', true) . '.' . $ext;
-            $destPath = $galleryDir . $uniqueName;
-            if ($ext === 'png') { $src = imagecreatefrompng($files['tmp_name'][$i]); if (!$src) continue; imagepng($src, $destPath, 8); imagedestroy($src); }
-            else { $src = imagecreatefromjpeg($files['tmp_name'][$i]); if (!$src) continue; imagejpeg($src, $destPath, 85); imagedestroy($src); }
-            $gallery[] = ['filename' => $uniqueName]; $added++;
+            $parts[] = [
+                'name' => 'files',
+                'path' => $files['tmp_name'][$i],
+                'filename' => $files['name'][$i],
+                'type' => $files['type'][$i] ?: 'application/octet-stream',
+            ];
         }
-        if ($added === 0 && empty($errors)) { jsonResponse(['error' => 'No se pudo procesar ninguna imagen'], 400); }
-        $config['gallery'] = $gallery;
-        if (!saveConfig($config)) {
-            jsonResponse(['error' => 'No se puede guardar: permisos de escritura en config.json'], 500);
+        if (empty($parts)) { jsonResponse(['error' => 'No se pudo procesar ninguna imagen'], 400); }
+        list($multipart, $boundary) = buildMultipartBody($parts);
+        // Forward al Scheduler: valida mime/magia de bytes y guarda en scheduler/data/uploads/gallery/.
+        $url = schedulerApiUrl() . '/branding/gallery';
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $multipart,
+            CURLOPT_HTTPHEADER => [
+                'X-API-Key: ' . ($_ENV['SCHEDULER_API_KEY'] ?? ''),
+                'Content-Type: multipart/form-data; boundary=' . $boundary,
+            ],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 30,
+        ]);
+        $body = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err = curl_error($ch);
+        $resp = json_decode($body, true);
+        if ($code < 200 || $code >= 300 || !($resp['success'] ?? false)) {
+            jsonResponse(['error' => 'El Scheduler rechazó las imágenes: ' . ($resp['message'] ?? ($err ?: 'error desconocido'))], 502);
         }
-        jsonResponse(['success' => true, 'gallery' => $gallery, 'added' => $added, 'errors' => $errors]);
+        $galleryItems = [];
+        $sched = schedulerBranding();
+        if ($sched) { $galleryItems = normalizeGalleryItems($sched['gallery'] ?? []); }
+        $config['gallery'] = $galleryItems;
+        saveConfig($config);
+        jsonResponse(['success' => true, 'gallery' => $galleryItems, 'added' => count($resp['added'] ?? []), 'errors' => []]);
     }
 
     if ($action === 'delete_gallery') {
         $filename = $_POST['filename'] ?? '';
         if (!$filename) { jsonResponse(['error' => 'Falta filename'], 400); }
-        $gallery = $config['gallery'] ?? []; $found = false; $newGallery = [];
-        foreach ($gallery as $img) {
-            if (($img['filename'] ?? '') === $filename) {
-                $found = true;
-                $filePath = $galleryDir . $filename;
-                if (file_exists($filePath)) { unlink($filePath); }
-            } else { $newGallery[] = $img; }
+        $res = schedulerApiCall('branding/gallery/' . rawurlencode($filename), 'DELETE');
+        if (($res['httpCode'] ?? 0) < 200 || ($res['httpCode'] ?? 0) >= 300) {
+            $detail = is_array($res['data']) ? ($res['data']['message'] ?? json_encode($res['data'])) : ($res['error'] ?: 'Scheduler no disponible');
+            jsonResponse(['error' => 'No se pudo eliminar la imagen en el Scheduler: ' . $detail], 502);
         }
-        if (!$found) { jsonResponse(['error' => 'Imagen no encontrada'], 404); }
-        $config['gallery'] = $newGallery;
-        if (!saveConfig($config)) {
-            jsonResponse(['error' => 'No se puede guardar: permisos de escritura en config.json'], 500);
-        }
-        jsonResponse(['success' => true, 'gallery' => $newGallery]);
+        $galleryItems = [];
+        $sched = schedulerBranding();
+        if ($sched) { $galleryItems = normalizeGalleryItems($sched['gallery'] ?? []); }
+        $config['gallery'] = $galleryItems;
+        saveConfig($config);
+        jsonResponse(['success' => true, 'gallery' => $galleryItems]);
     }
 
     if ($action === 'save_professionals') {
@@ -251,11 +299,22 @@ if ($isLoggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action
     jsonResponse(['error' => 'Acción desconocida'], 400);
 }
 
+// Marca/Colores/Logo/Galeria: el Scheduler es la fuente de verdad (GET /api/v1/branding).
+// php/config.json queda como cache local para profesionales y como fallback.
+$schedulerBase = schedulerBaseUrl();
+$schedBranding = schedulerBranding();
+if ($schedBranding) {
+    $config['brand'] = $schedBranding['brand'] ?? $config['brand'] ?? [];
+    $config['colors'] = $schedBranding['colors'] ?? $config['colors'] ?? [];
+    $config['logo'] = $schedBranding['logo'] ?? $config['logo'] ?? '';
+    $config['gallery'] = normalizeGalleryItems($schedBranding['gallery'] ?? []);
+    saveConfig($config);
+}
 $brand = $config['brand'] ?? [];
 $colors = $config['colors'] ?? [];
-$gallery = $config['gallery'] ?? [];
+$gallery = normalizeGalleryItems($config['gallery'] ?? []);
 $logo = $config['logo'] ?? '';
-$logoUrl = ($logo && file_exists(__DIR__ . '/../' . $logo)) ? '../' . $logo . '?' . filemtime(__DIR__ . '/../' . $logo) : '';
+$logoUrl = $logo ? $schedulerBase . '/' . $logo . '?t=' . time() : '';
 $waNumber = $brand['whatsapp'] ?? '5493826403110';
 $professionals = $config['professionals'] ?? [];
 ?>
@@ -707,7 +766,7 @@ textarea { resize: vertical; min-height: 60px; }
                 <?php $fname = htmlspecialchars($img['filename'] ?? ''); ?>
                 <?php if ($fname): ?>
                 <div class="gallery-thumb" data-filename="<?=$fname?>">
-                  <img src="../uploads/gallery/<?=$fname?>" alt="" loading="lazy">
+                  <img src="<?=htmlspecialchars($schedulerBase, ENT_QUOTES)?>/uploads/gallery/<?=$fname?>" alt="" loading="lazy">
                   <button class="delete-btn" title="Eliminar">&times;</button>
                 </div>
                 <?php endif; ?>
@@ -774,6 +833,7 @@ textarea { resize: vertical; min-height: 60px; }
 
 <script>
 const CSRF_TOKEN = '<?= $_SESSION['csrf_token'] ?? '' ?>';
+const SCHEDULER_BASE = '<?= htmlspecialchars($schedulerBase, ENT_QUOTES) ?>';
 const API = '../api/admin-servicios.php';
 const WP_API = '../api/horarios-admin.php';
 const TURNOS_API = '../api/turnos-admin.php';
@@ -1306,7 +1366,7 @@ if (formColores) {
           if (d.error) { mostrarToast('Error: ' + d.error); return; }
           mostrarToast('Logo actualizado');
           var preview = document.getElementById('logoPreview'), placeholder = document.getElementById('logoPlaceholder');
-          preview.src = '../' + d.logo; preview.style.display = 'block';
+          preview.src = SCHEDULER_BASE + '/' + d.logo; preview.style.display = 'block';
           if (placeholder) placeholder.style.display = 'none';
           var delBtn = document.getElementById('btnDeleteLogo');
           if (delBtn) { delBtn.style.display = 'inline-flex'; } else {
@@ -1357,7 +1417,7 @@ if (formColores) {
     else {
       var html = '';
       gallery.forEach(function(img) {
-        html += '<div class="gallery-thumb" data-filename="' + img.filename + '"><img src="../uploads/gallery/' + img.filename + '" alt="" loading="lazy"><button class="delete-btn" title="Eliminar">&times;</button></div>';
+        html += '<div class="gallery-thumb" data-filename="' + img.filename + '"><img src="' + SCHEDULER_BASE + '/uploads/gallery/' + img.filename + '" alt="" loading="lazy"><button class="delete-btn" title="Eliminar">&times;</button></div>';
       });
       grid.innerHTML = html;
     }

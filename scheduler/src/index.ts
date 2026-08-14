@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { DATA_DIR, getDb } from './db';
 import { authMiddleware } from './auth';
+import { CORS_ALLOWED_ORIGINS } from './config';
 import { register as registerAppointments } from './routes/appointments';
 import { register as registerCustomers } from './routes/customers';
 import { register as registerServices } from './routes/services';
@@ -22,7 +23,13 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
 app.disable('x-powered-by');
-app.use(cors());
+// CORS: si CORS_ALLOWED_ORIGINS está definida (producción), solo esos orígenes exactos
+// (el paquete cors maneja el preflight OPTIONS automáticamente con origin como lista).
+// Sin la env var (dev local), se comporta como hoy: allow all / same-origin.
+const corsOptions: cors.CorsOptions = CORS_ALLOWED_ORIGINS.length > 0
+  ? { origin: CORS_ALLOWED_ORIGINS }
+  : {};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');

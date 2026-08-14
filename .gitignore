@@ -13,6 +13,10 @@ scheduler/data/
 *.db-wal
 *.db-shm
 
+# Config branding generada en runtime (admin PHP y SPA)
+php/config.json
+web/config.json
+
 # Logs
 *.log
 scheduler.err

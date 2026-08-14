@@ -4,6 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title id="pageTitle">TeToca · Manicuría en Chamical</title>
+<script src="config.js"></script>
+<script>
+  /* TUAHORAV2 — configuración de deploy (GitHub Pages + Railway).
+     En producción, setear estas variables ANTES de este script (p. ej. en un <script>
+     previo o un config.js del repo):
+       window.TUAHORA_BASE = '/TUAHORAV2/';                                // base href de la página en GitHub Pages
+       window.TUAHORA_API  = 'https://miproyecto.up.railway.app';          // URL pública del Scheduler (Railway)
+     Sin ninguna, el sitio funciona en dev local (API relativa, servida por el Scheduler en /). */
+  if (window.TUAHORA_BASE) {
+    var _base = document.createElement('base');
+    _base.href = window.TUAHORA_BASE;
+    document.head.appendChild(_base);
+  }
+</script>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 <script id="tailwind-config">
@@ -376,7 +390,13 @@ body { min-height: 100dvh; }
 
 <script>
 (function() {
-  var API = '/api/v1';
+  var API_BASE = (window.TUAHORA_API || '').replace(/\/+$/, '');
+  var API = API_BASE + '/api/v1';
+  function imgUrl(u) {
+    if (!u) return '';
+    if (u.indexOf('//') === 0 || /^https?:/i.test(u) || u.indexOf('data:') === 0) return u;
+    return API_BASE + '/' + String(u).replace(/^\/+/, '');
+  }
   var tomorrow = new Date(Date.now() + 86400000);
   document.getElementById('bfDate').min = tomorrow.toISOString().slice(0,10);
 
@@ -413,12 +433,12 @@ body { min-height: 100dvh; }
     if (cfg.gallery && cfg.gallery.length > 0) renderGallery(cfg.gallery);
     var logoUrl = cfg.logo || brand.logo || '';
     var heroLogo = document.getElementById('heroLogo');
-    if (logoUrl && heroLogo) { heroLogo.src = logoUrl; heroLogo.classList.remove('hidden'); }
+    if (logoUrl && heroLogo) { heroLogo.src = imgUrl(logoUrl); heroLogo.classList.remove('hidden'); }
   }
 
   function setText(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; }
 
-  fetch('/config.json').then(function(r) { if (r.ok) return r.json(); }).then(function(cfg) { if (cfg) applyConfig(cfg); }).catch(function() {});
+  fetch(API_BASE + '/config.json').then(function(r) { if (r.ok) return r.json(); }).then(function(cfg) { if (cfg) applyConfig(cfg); }).catch(function() {});
 
   var servicesData = [];
   fetch(API + '/services').then(function(r) { return r.json(); }).then(function(data) {
@@ -642,7 +662,7 @@ body { min-height: 100dvh; }
     if (!images || images.length === 0) return;
     var html = '';
     images.forEach(function(img, i) {
-      var src = 'uploads/gallery/' + esc(img.filename);
+      var src = API_BASE + '/uploads/gallery/' + esc(img.filename);
       html += '<div class="gallery-item relative aspect-square rounded-xl overflow-hidden cursor-pointer fade-in" data-index="' + i + '">' +
         '<img src="' + src + '" alt="Trabajo ' + (i+1) + '" loading="lazy" class="w-full h-full object-cover">' +
         '<div class="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors"></div>' +

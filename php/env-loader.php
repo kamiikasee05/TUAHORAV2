@@ -57,6 +57,6 @@ function schedulerApiCall(string $endpoint, string $method = 'GET', $body = null
     $res = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $err = curl_error($ch);
-    curl_close($ch);
+    // curl_close() es deprecado en PHP 8.x (no-op) y emitía un aviso que corrompía el JSON del proxy.
     return ['data' => json_decode($res, true) ?? $res, 'httpCode' => $code, 'error' => $err];
 }

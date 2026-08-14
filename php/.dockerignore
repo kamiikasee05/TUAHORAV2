@@ -1,0 +1,9 @@
+# TuHora v2 — admin PHP: excluir del build context (COPY . /app/)
+config.json
+uploads/
+*.log
+node_modules/
+.git/
+.env
+Dockerfile
+.dockerignore
