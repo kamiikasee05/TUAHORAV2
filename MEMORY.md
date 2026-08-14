@@ -130,6 +130,14 @@ La **v1** vive en `E:\TUAHORA` (Easy!Appointments + MySQL + n8n + Redis + Bailey
 - **LECCIÓN CRÍTICA — los tests usan la DB viva de dev:** `getDb()` + DELETE en `afterAll` borran la data demo en cada `npm test` → re-seedear con `scripts/seed-demo.ps1` tras testear (ids de servicios cambian: 41-46 en vez de 1-6; la landing los resuelve dinámico, sin impacto).
 - **BUG PRE-EXISTENTE en `scripts/seed-demo.ps1`:** PowerShell 5.1 envía el body HTTP como ASCII → los acentos se corrompen (U+FFFD). Fix: `Invoke-RestMethod -Body <byte[] UTF8>`. No corregido aún (anotado).
 - **Deploy pendiente (Paquete 2, con el humano):** repo en GitHub `kamiikasee05/TUAHORAV2` (primer commit + push), Railway (trial $5) conectado al repo → servicios Scheduler (root `scheduler/`, Dockerfile ya existe) + PHP (root `php/`), setear `CORS_ALLOWED_ORIGINS=https://kamiikasee05.github.io` + `TUAHORA_API`/`TUAHORA_BASE` en la SPA, GitHub Pages desde `web/` con los scripts de config, y OpenWA en la notebook con Podman + Cloudflare Tunnel.
+- **PAQUETE 2 PARTE 1 COMPLETADO (13/8/2026, Dispatcher + humano) — Landing EN PRODUCCIÓN en GitHub Pages:**
+  - Commit `72b92e4` (16 archivos) + push a `github.com/kamiikasee05/TUAHORAV2` (repo **público**, branch `master`).
+  - **Scope `workflow` agregado al token gh** (`gh auth refresh --hostname github.com -s workflow -c` — el device code se copia al clipboard con `-c`; sin `--hostname` falla en no-interactivo) — necesario para pushear `.github/workflows/`.
+  - **`.github/workflows/pages.yml`** creado: publica la carpeta `web/` con `actions/configure-pages@v5` + `upload-pages-artifact@v3` + `deploy-pages@v4` (en push a main/master + workflow_dispatch).
+  - **Gotcha: Pages debe estar habilitado ANTES de que corra el workflow** — el action `configure-pages` falla con `HttpError: Not Found` si Pages no existe. Se habilitó vía API: `gh api repos/kamiikasee05/TUAHORAV2/pages -X POST -f "build_type=workflow"` → URL `https://kamiikasee05.github.io/TUAHORAV2/`.
+  - **`web/config.js`** creado (base href `/TUAHORAV2/` + `TUAHORA_API` vacío — TODO pendiente hasta que exista Railway) y referenciado en `<head>` del index.html antes del bloque de config.
+  - **Verificado:** landing pública responde **HTTP 200** (49KB, contiene TeToca + config.js). Aviso: Node.js 20 deprecado en los actions (warning, no bloquea).
+  - **Pendiente Paquete 2:** Railway (trial $5) → servicios Scheduler + PHP, `CORS_ALLOWED_ORIGINS=https://kamiikasee05.github.io`, completar `TUAHORA_API` en `web/config.js`, OpenWA en notebook con Podman + Cloudflare Tunnel.
 
 ### PENDIENTE (próximo paso con el humano)
 
